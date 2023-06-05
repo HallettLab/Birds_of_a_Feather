@@ -1,0 +1,20 @@
+Farm,Species,p.value
+Dorris,ANNHUM (Calypte anna),0.0001
+Dorris,BROCRE (Certhia americana),0.0001
+Dorris,BEWWRE (Thryomanes bewickii),0.0039
+Dorris,NORFLI (Colaptes auratus),0.0066
+Dorris,ACOWOO (Melanerpes formicivorus),0.0105
+Dorris,DOWWOO (Dryobates pubescens),0.0087
+Dorris,EURSTA (Sturnus vulgaris),0.021
+Howell,AMEROB (Turdus migratorius),0.0078
+Wheatland,HOUFIN (Haemorhous mexicanus),0.0011
+Dorris,STEJAY (Cyanocitta stelleri),0.0002
+Dorris,SONSPA (Melospiza melodia),0.004
+Dorris,SPOTOW (Pipilo maculatus),0.0045
+Howell,STEJAY (Cyanocitta stelleri),0.0002
+Howell,SONSPA (Melospiza melodia),0.004
+Howell,SPOTOW (Pipilo maculatus),0.0045
+Howell,MOUDOV (Zenaida macroura),0.0127
+Howell,AMEGOL (Spinus tristis),0.0332
+Wheatland,MOUDOV (Zenaida macroura),0.0127
+Wheatland,AMEGOL (Spinus tristis),0.0332

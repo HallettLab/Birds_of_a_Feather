@@ -1,0 +1,79 @@
+Species,CommonName,Status,Genus,species,DietGulid1,DietGuild2,Index,Behavior
+MALLAR,Mallard,0,Anas,platyrhynchos,Granivore,Insectivore,Neutral,Ground Forager
+CANGOO,Canada Goose,0,Branta,canadensis,Granivore,NA,Neutral,Ground Forager
+CACGOO,Cackling Goose,0,Branta,hutchinsii,Granivore,NA,Neutral,Ground Forager
+CALQUA,California Quail,0,Callipepla ,californica,Granivore,NA,Neutral,Ground Forager
+EVEGRO,Evening Grosbeak,0,Coccothraustes ,vespertinus,Granivore,NA,Neutral,Ground Forager
+PURFIN,Purple Finch,0,Haemorhous ,purpureus,Granivore,NA,Neutral,Ground Forager
+DAEYJU,Dark-eyed Junco,0,Junco,hyemalis,Granivore,Insectivore,Service,Ground Forager
+WILTUR,Wild Turkey,0,Meleagris,gallopavo,Granivore,NA,Neutral,Ground Forager
+LAZBUN,Lazuli Bunting,1,Passerina ,amoena,Granivore,Insectivore,Neutral,Ground Forager
+LESGOL,Lesser Goldfinch,0,Spinus,psaltria,Granivore,Insectivore,Neutral,Foliage Gleaner
+AMEGOL,American Goldfinch,0,Spinus,tristis,Granivore,Insectivore,Neutral,Foliage Gleaner
+EUCODO,Eurasian Collared-Dove,0,Streptopelia,decaocto,Granivore,NA,Neutral,Ground Forager
+MOUDOV,Mourning Dove,0,Zenaida,macroura,Granivore,Insectivore,Disservice,Ground Forager
+BRHECO,Brown-headed Cowbird,0,Molothrus ,ater,Granivore,NA,Neutral,Ground Forager
+NORFLI,Northern Flicker,0,Calaptes,auratus,Insectivore,NA,Service,Ground Forager
+ANNHUM,Anna's Hummingbird,0,Calypte,anna,Insectivore,NA,Service,Hovering
+WILWAR,Wilson's Warbler,1,Cardellina ,pusilla,Insectivore,NA,Service,Foliage Gleaner
+BROCRE,Brown Creeper,0,Certhia,americana,Insectivore,NA,Service,Bark Forager
+WRENTI,Wrentit,0,Chamaea,fasciata,Insectivore,Granivore,Service,Foliage Gleaner
+WEWOPE,Western Wood-Pewee,0,Contopus ,sordidulus,Insectivore,NA,Service,Flycatcher
+DOWWOO,Downy Woodpecker,0,Dryobates,pubescens,Insectivore,NA,Service,Bark Forager
+HAIWOO,Hairy Woodpecker,0,Dryobates,villosus,Insectivore,NA,Service,Bark Forager
+PLIWOO,Pileated Woodpecker,1,Dryocopus,pileatus,Insectivore,NA,Service,Bark Forager
+COMYEL,Common Yellowthroat,0,Geothlypis ,trichas,Insectivore,NA,Service,Foliage Gleaner
+HOUFIN,House Finch,0,Haemorhous,mexicanus,Insectivore,Granivore,Service,Ground Forager
+VARTHR,Varied Thrush,0,Ixoreus,naevius,Insectivore,Granivore,Service,Ground Forager
+SONSPA,Song Sparrow,0,Melospiza,melodia,Insectivore,Granivore,Service,Ground Forager
+BLWHWA,Black and White Warbler,1,Mniotilta,varia,Insectivore,NA,Service,Bark Forager
+ORCRWA,Orange-crowned Warbler,1,Oreothlypis,celata,Insectivore,NA,Service,Foliage Gleaner
+HOUSPA,House Sparrow,0,Passer,domesticus,Insectivore,Granivore,Service,Ground Forager
+BLHEGR,Black-headed Grosbeak,0,Pheucticus ,melanocephalus,Insectivore,Granivore,Service,Foliage Gleaner
+SPOTOW,Spotted Towhee,0,Pipilo,maculatus,Insectivore,NA,Service,Ground Forager
+WESTAN,Western Tanager ,0,Piranga ,ludoviciana,Insectivore,NA,Service,Foliage Gleaner
+BLCACH,Black-capped Chickadee,0,Poecile,atricapillus,Insectivore,NA,Service,Foliage Gleaner
+BLGRGN,Blue-grey Gnatcatcher,1,Polioptila ,caerulea,Insectivore,NA,Service,Foliage Gleaner
+BUSHTI,Bushtit,0,Psaltriparus,minimus,Insectivore,NA,Service,Foliage Gleaner
+GOCRKI,Golden-crowned Kinglet,0,Regulus,statrapa,Insectivore,NA,Service,Foliage Gleaner
+RUCRKI,Ruby-crowned Kinglet,0,Regulus,calendula,Insectivore,NA,Service,Foliage Gleaner
+RUFHUM ,Rufous Hummingbird,0,Selasphorus,rufus,Insectivore,NA,Service,Hovering
+YERUWA,Yellow-rumped Warbler,1,Setophaga,coronata,Insectivore,NA,Service,Foliage Gleaner
+YELWAR,Yellow Warbler,1,Setophaga,petechia,Insectivore,NA,Service,Foliage Gleaner
+BTGYWA,Black-throated Grey Warbler,1,Setophaga,nigrescens,Insectivore,NA,Service,Foliage Gleaner
+WESBLU,Western Bluebird,1,Sialia,mexicana,Insectivore,NA,Service,Flycatcher
+WHBRNU,White-breasted Nuthatch,1,Sitta,carolinensis,Insectivore,NA,Service,Bark Forager
+REBRNU,Red-breasted Nuthatch,1,Sitta,canadensis,Insectivore,NA,Service,Bark Forager
+REBRSA,Red-breasted Sapsucker,0,Sphyrapicus,ruber,Insectivore,NA,Service,Bark Forager
+CHISPA,Chipping Sparrow,0,Spizella,passerina,Insectivore,NA,Service,Ground Forager
+WESMEA,Western Meadowlark,1,Sturnella ,neglecta,Insectivore,NA,Neutral,Ground Forager
+EURSTA,European Starling,0,Sturnus,vulgaris,Insectivore,NA,Disservice,Ground Forager
+TRESWA,Tree Swallow,1,Tachycineta,bicolor,Insectivore,NA,Service,Aerial Forager
+VIGRSW,Violet-green Swallow,0,Tachycineta,thalassina,Insectivore,NA,Service,Aerial Forager
+BEWWRE,Bewick's Wren,0,Thyromanes,bewickii,Insectivore,NA,Service,Foliage Gleaner
+PACWRE,Pacific Wren,1,Troglodytes,pacificus,Insectivore,NA,Service,Ground Forager
+HOUWRE,House Wren,0,Troglodytes ,aedon,Insectivore,NA,Service,Foliage Gleaner
+AMEROB,American Robin,0,Turdus,migratorius,Insectivore,Granivore,Disservice,Ground Forager
+HUTVUR,"Hutton""s Vireo",1,Vireo,huttoni,Insectivore,NA,Service,Foliage Gleaner
+WARVIR,Warbling Vireo,0,Vireo ,gilvus,Insectivore,NA,Service,Foliage Gleaner
+GOCRSP,Golden-crowned Sparrow,0,Zonotrichia,atricapilla,Insectivore,Granivore,Service,Ground Forager
+WHCRSP,White-crowned Sparrow,0,Zonotrichia,leucophrys,Insectivore,NA,Service,Ground Forager
+WILFLY,Willow Flycatcher,0,Empidonax ,traillii,Insectivore,NA,Service,Flycatcher
+SWATHR,Swainson's Thrush,0,Catharus ,ustulatus,Insectivore,NA,Service,Foliage Gleaner
+KILLDE,Killdeer,0,Charadrius ,vociferus,Insectivore,NA,Service,Ground Forager
+REWIBL,Red-winged Blackbird,0,Agelaius,phoenixes,Omnivore,NA,Neutral,Ground Forager
+WESCJA,Western Scrub-Jay,0,Aphelocoma,californica,Omnivore,NA,Disservice,Ground Forager
+AMECRO,American Crow,0,Corvus,brachyrhynchos,Omnivore,NA,Disservice,Ground Forager
+COMRAV,Common Raven,0,Corvus,corax,Omnivore,NA,Disservice,Ground Forager
+STEJAY,Steller's Jay,0,Cyanocitta,stelleri,Omnivore,NA,Disservice,Ground Forager
+ACOWOO,Acorn Woodpecker,1,Melanerpes,formicivorus,Omnivore,NA,Neutral,Bark Forager
+GRBLHE,Great Blue Heron,0,Aerodias,herodias,Piscivorous,NA,Neutral,NA
+DOCRCO,Double-crested Cormorant,0,Phalacrocorax,auritus,Piscivorous ,NA,Neutral,NA
+COOHAW,Cooper's Hawk,0,Accipiter,cooperii,Raptor,NA,Service,NA
+SHSHHW,Sharp-shinned Hawk,0,Accipiter,striatus,Raptor,NA,Service,NA
+GRHOOW,Great Horned Owl,0,Bubo,virginianus,Raptor,NA,Service,NA
+RETAHW,Red-tailed Hawk,0,Buteo,jamaicensis,Raptor,NA,Service,NA
+TURVUL,Turkey Vulture,0,Cathartes,aura,Raptor,NA,Service,NA
+AMEKES,American Kestrel,1,Falco,sparverius,Raptor,NA,Service,NA
+BALEAG,Bald Eagle,1,Haliaeetus,leucocephalus,Raptor,NA,Service,NA
+OSPREY,Osprey,0,Pandion ,haliaetus,Raptor,NA,Neutral,NA

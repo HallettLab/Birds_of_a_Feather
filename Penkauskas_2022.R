@@ -1,0 +1,545 @@
+###### SET UP ######
+
+### Libraries ### 
+
+library(tidyverse) 
+library(cowplot)
+library(vegan)
+library(ggplot2)
+library(RColorBrewer)
+library(ggpubr)
+library(finalfit)
+library(forcats)
+library(wesanderson)
+library(abdiv)
+library(scales)
+library(gridExtra)
+library(indicspecies)
+
+### Set theme ###
+theme_set(theme_cowplot() + theme(strip.background = element_blank(), 
+                                  text = element_text(size = 18), 
+                                  axis.text = element_text(size = 16),
+                                  strip.text = element_text(size = 18)))
+### Working Directory ###
+setwd("A:/Masters/Thesis/Data/POINT_COUNTS/Working")
+
+### Data ###
+Bird_DATA <- read_csv("BirdsDataWorking.csv")
+env2 <- read_csv("env1.csv")
+FarmLandCover <- read_csv("CropCoverFarms.csv")
+IndicatorsAcrossFarms <- read.csv("IndicatorsAcrossFarms.csv")
+Species <- read_csv("Species.csv")
+
+
+### CalcSE ###
+calcSE<-function(x){
+  x <- x[is.na(x)==F]
+  sd(x)/sqrt(length(x))
+}
+
+
+############# Crop Cover ##################
+
+HazelnutCover <- FarmLandCover%>%
+  filter(Class_Name == "Other Tree Crops" | Class_Name == "Sod/Grass Seed" | Class_Name == "Hops" | Class_Name == "Grassland/Pasture" |
+           Class_Name == "Evergreen Forest" | Class_Name == "Developed/Med Intensity" | Class_Name == "Open Water" | Class_Name == "Mixed Forest" |
+           Class_Name == "Developed/High Intensity" | Class_Name == "Developed/Low Intensity" | Class_Name == "Developed/Open Space"| 
+           Class_Name == "Herbaceous Wetlands" | Class_Name == "Woody Wetlands" | Class_Name == "Blueberries" | Class_Name == "Corn" |
+           Class_Name == "Dry Beans")
+HazelnutCover$Class_Name[HazelnutCover$Class_Name == "Other Tree Crops" ] <- "Hazelnuts"
+HazelnutCover$Class_Name[HazelnutCover$Class_Name == "Blueberries" | 
+                           HazelnutCover$Class_Name == "Dry Beans" |
+                           HazelnutCover$Class_Name == "Corn" | HazelnutCover$Class_Name == "Hops" ] <- "Other Ag"
+HazelnutCover$Class_Name[HazelnutCover$Class_Name == "Developed/Med Intensity" | HazelnutCover$Class_Name == "Developed/Open Space" |
+                           HazelnutCover$Class_Name == "Developed/High Intensity" | HazelnutCover$Class_Name == "Developed/Low Intensity"] <- "Developed"
+HazelnutCover$Class_Name[HazelnutCover$Class_Name == "Evergreen Forest" | HazelnutCover$Class_Name == "Mixed Forest" |
+                           HazelnutCover$Class_Name == "Woody Wetlands" |
+                           HazelnutCover$Class_Name == "Herbaceous Wetlands" ] <- "Wildland"
+
+HazelnutCover<- HazelnutCover %>%
+  group_by(Farm, Class_Name) %>%
+  summarise(Sum = sum(Count)) %>%
+  group_by(Farm)%>%
+  mutate(Total = sum(Sum)) %>%
+  ungroup() %>%
+  mutate(Percent = (Sum/Total)*100)
+
+HazelnutCover$Class_Name <- factor(HazelnutCover$Class_Name, levels=c("Open Water", "Wildland", "Developed", "Grassland/Pasture", "Hazelnuts", "Sod/Grass Seed", "Other Ag"))
+HazelnutCover$Farm <- factor(HazelnutCover$Farm, levels=c("Wheatland", "Howell", "Dorris"))
+
+###Figure 1b###
+CoverBar <- ggplot(HazelnutCover, aes(x = Class_Name, y = Percent, fill = Class_Name)) +
+  geom_col()+
+  scale_fill_manual(values = c("Dark Blue", "slateblue", "#666666","Dark Green", "greenyellow", "Dark Green", "Dark Green")) +
+  #scale_fill_brewer(palette = "YlGnBu")+
+  facet_wrap(~Farm, ncol=1) +
+  theme_bw() +
+  theme(panel.grid.major = element_line(colour = "grey50"), strip.background = element_rect(colour = "black", fill = "grey"), 
+        strip.text.x = element_text(colour = "black", face = "bold"), strip.text = element_text(size = 18),
+        axis.text = element_text(size = 14), axis.text.x = element_text(angle = 65, vjust=.5), legend.position="none", 
+        axis.title=element_text(size=16,face="bold")) +
+  labs(y = "% Cover", x = "Habitat/Crop Type")
+
+
+
+
+##### ANOSIM Abundance Across-Farms #####
+
+###Data Wrangle###
+
+FarmsANOSIM <- Bird_DATA%>%
+  drop_na(Day) %>%
+  drop_na(Band) %>%
+  filter(Farm == "Dorris" & Point != "6" & Point != "7" & Point != "1"& Point != "2"& Point != "3"& Point != "12" & Point != "13" & Point != "14"
+         | Farm == "Howell"| Farm == "Wheatland") %>%
+  filter(Week == "4" | Week == "5" | Week == "8" | Week == "9" | Week == "10")%>%
+  group_by(Species, Point, Week, Farm) %>%
+  summarise(Density = mean(Count)) %>%
+  ungroup()
+
+###Farms###
+FarmBirdANOSIM <- pivot_wider(FarmsANOSIM, names_from = "Species", values_from = "Density") %>%
+  mutate_if(is.numeric, ~replace(., is.na(.), 0))
+
+#make community matrix - extract columns with abundance information, turn data frame into matrix
+com = FarmBirdANOSIM[,4:ncol(FarmBirdANOSIM)]
+m_com = as.matrix(com)
+
+## Permutation Test ##
+ano = anosim(m_com, FarmBirdANOSIM$Farm, distance = "bray", permutations = 9999)
+summary(ano)
+
+### Indicator Species -> "IndicatorsAcrossFarms.csv" ###
+inv = multipatt(com, FarmBirdANOSIM$Farm, func = "r.g", control = how(nperm = 9999))
+summary(inv)
+
+
+##### ANOSIM Richness Across-Farms #####
+###Wrangle###
+Farms1ANOSIM <- Bird_DATA%>%
+  drop_na(Day) %>%
+  drop_na(Band) %>%
+  filter(Farm == "Dorris" & Point != "6" & Point != "7" & Point != "1"& Point != "2"& Point != "3"& Point != "12" & Point != "13" & Point != "14"
+         | Farm == "Howell"| Farm == "Wheatland") %>%
+  filter(Week == "4" | Week == "5" | Week == "8" | Week == "9" | Week == "10")%>%
+  group_by(Species, Point, Week, Farm) %>%
+  summarise(Density = mean(Count)) %>%
+  ungroup()
+
+FarmBirdANOSIM1 <- pivot_wider(Farms1ANOSIM, names_from = "Species", values_from = "Density") %>%
+  mutate_if(is.numeric, ~replace(., is.na(.), 0))
+
+##Species###
+Farmsspp <- specnumber(FarmBirdANOSIM1)
+
+##Join DF##
+FarmssppDF <- Farmsspp %>% 
+  enframe() %>% 
+  full_join(env2, by = c("name" = "Number"))
+##Re-pivot##
+FarmBirdANOSIM2 <- pivot_wider(FarmssppDF, names_from = "Farm", values_from = "value") %>%
+  mutate_if(is.numeric, ~replace(., is.na(.), 0))
+
+#make community matrix - extract columns with abundance information, turn data frame into matrix
+com2 = FarmBirdANOSIM2[,4:ncol(FarmBirdANOSIM2)]
+m_com2 = as.matrix(com2)
+
+# Permutation Test ##
+ano2 = anosim(m_com2, FarmssppDF$Farm, distance = "bray", permutations = 9999)
+summary(ano2)
+
+
+
+##### Diversity #####
+
+##LaneMasseeSppWeek##
+
+LanemasseeRichnessWeek <- Bird_DATA %>%
+  drop_na(Day) %>%
+  drop_na(Band) %>%
+  filter(Farm == "Wheatland" | Farm == "Howell") %>%
+  group_by(Species, Point, Week, Farm) %>%
+  summarise(Density = mean(Count)) %>%
+  ungroup()
+
+LanemasseeRichnessWeek$Habitat <- NA
+
+LanemasseeRichnessWeek$Habitat[LanemasseeRichnessWeek$Point == 1 & LanemasseeRichnessWeek$Farm == "Wheatland" ] <- "Young"
+LanemasseeRichnessWeek$Habitat[LanemasseeRichnessWeek$Point == 2 & LanemasseeRichnessWeek$Farm == "Wheatland" ] <- "Core"
+LanemasseeRichnessWeek$Habitat[LanemasseeRichnessWeek$Point == 3 & LanemasseeRichnessWeek$Farm == "Wheatland" ] <- "Hops"
+LanemasseeRichnessWeek$Habitat[LanemasseeRichnessWeek$Point == 4 & LanemasseeRichnessWeek$Farm == "Wheatland" ] <- "Mixed_Ag"
+LanemasseeRichnessWeek$Habitat[LanemasseeRichnessWeek$Point == 5 & LanemasseeRichnessWeek$Farm == "Wheatland" ] <- "Homestead"
+LanemasseeRichnessWeek$Habitat[LanemasseeRichnessWeek$Point == 1 & LanemasseeRichnessWeek$Farm == "Howell" ] <- "Young"
+LanemasseeRichnessWeek$Habitat[LanemasseeRichnessWeek$Point == 2 & LanemasseeRichnessWeek$Farm == "Howell" ] <- "Core"
+LanemasseeRichnessWeek$Habitat[LanemasseeRichnessWeek$Point == 3 & LanemasseeRichnessWeek$Farm == "Howell" ] <- "Mixed_Hardwood"
+LanemasseeRichnessWeek$Habitat[LanemasseeRichnessWeek$Point == 4 & LanemasseeRichnessWeek$Farm == "Howell" ] <- "Douglas_fir"
+LanemasseeRichnessWeek$Habitat[LanemasseeRichnessWeek$Point == 5 & LanemasseeRichnessWeek$Farm == "Howell" ] <- "Mixed_Riparain"
+
+
+BirdRichnessWeekLaneMassee <- pivot_wider(LanemasseeRichnessWeek, names_from = "Species", values_from = "Density") %>%
+  mutate_if(is.numeric, ~replace(., is.na(.), 0))
+
+HabitatLaneMassee <- BirdRichnessWeekLaneMassee %>%
+  select(1:4)
+
+HabitatLaneMassee$Number <- NA
+HabitatLaneMassee$Number <- c(1:50)
+
+sppWeekLaneMassee <- specnumber(BirdRichnessWeekLaneMassee)
+
+sppweek_dfLaneMassee1 <- sppWeekLaneMassee %>% 
+  enframe() %>% 
+  full_join(HabitatLaneMassee, by = c("name" = "Number")) %>%
+  group_by(Week, Farm) %>%
+  summarise(meanvalue = mean(value), SEvalue= calcSE(value), Totalvalue= sum(value)) %>%
+  ungroup()
+
+sppweek_dfLaneMassee2 <- sppWeekLaneMassee %>% 
+  enframe() %>% 
+  full_join(HabitatLaneMassee, by = c("name" = "Number")) %>%
+  group_by(Week, Habitat, Farm) %>%
+  summarise(meanvalue = mean(value)) %>% 
+  ungroup()
+sppweek_dfLaneMassee2$Habitat[sppweek_dfLaneMassee2$Habitat == "Mixed_Ag"  ] <- "Hops/Old_Orchard"
+
+
+##DorrisSppWeek##
+
+DorrisRichnessWeek <- Bird_DATA %>%
+  drop_na(Day) %>%
+  drop_na(Band) %>%
+  filter(Farm == "Dorris") %>%
+  group_by(Species, Point, Week, Farm) %>%
+  summarise(Density = mean(Count)) %>%
+  ungroup()
+
+DorrisRichnessWeek$Age <- NA
+DorrisRichnessWeek$Habitat <- NA
+
+DorrisRichnessWeek$Habitat[DorrisRichnessWeek$Point == 10 | DorrisRichnessWeek$Point == 11 ] <- "Oak"
+DorrisRichnessWeek$Habitat[DorrisRichnessWeek$Point == 6 ] <- "Maple"
+DorrisRichnessWeek$Habitat[DorrisRichnessWeek$Point == 8 | DorrisRichnessWeek$Point == 9  ] <- "Mixed"
+DorrisRichnessWeek$Habitat[DorrisRichnessWeek$Point == 4 | DorrisRichnessWeek$Point == 5 ] <- "Urban_New"
+DorrisRichnessWeek$Habitat[DorrisRichnessWeek$Point == 7 ] <- "Conifer"
+DorrisRichnessWeek$Habitat[DorrisRichnessWeek$Point == 1 |DorrisRichnessWeek$Point == 2 | DorrisRichnessWeek$Point == 3  ] <- "Urban"
+DorrisRichnessWeek$Habitat[DorrisRichnessWeek$Point == 12 |DorrisRichnessWeek$Point == 13 | DorrisRichnessWeek$Point == 14  ] <- "Prairie_Oak"
+DorrisRichnessWeek$Age[DorrisRichnessWeek$Point == 1 | DorrisRichnessWeek$Point == 2 | DorrisRichnessWeek$Point == 3 | DorrisRichnessWeek$Point == 12
+                       | DorrisRichnessWeek$Point == 13 | DorrisRichnessWeek$Point == 14] <- NA
+DorrisRichnessWeek$Age[DorrisRichnessWeek$Point == 10 | DorrisRichnessWeek$Point == 9 | DorrisRichnessWeek$Point == 4 | DorrisRichnessWeek$Point == 12 | DorrisRichnessWeek$Point == 13 |DorrisRichnessWeek$Point == 3 ] <- "Young"
+DorrisRichnessWeek$Age[DorrisRichnessWeek$Point == 1 |DorrisRichnessWeek$Point == 2 | DorrisRichnessWeek$Point == 5 | DorrisRichnessWeek$Point == 6 |DorrisRichnessWeek$Point == 7 |DorrisRichnessWeek$Point == 8 | DorrisRichnessWeek$Point == 11 | DorrisRichnessWeek$Point == 14  ] <- "Old"
+
+
+DorrisRichnessWeek$ID <- paste(DorrisRichnessWeek$Age,DorrisRichnessWeek$Habitat)
+
+
+BirdRichnessWeek2 <- pivot_wider(DorrisRichnessWeek, names_from = "Species", values_from = "Density") %>%
+  mutate_if(is.numeric, ~replace(., is.na(.), 0))
+
+Habitat <- BirdRichnessWeek2 %>%
+  select(1:5)
+
+Habitat$Number <- NA
+Habitat$Number <- c(1:140)
+
+sppWeek <- specnumber(BirdRichnessWeek2)
+
+sppweek_df <- sppWeek %>% 
+  enframe() %>% 
+  full_join(Habitat, by = c("name" = "Number")) %>%
+  group_by(Week, Habitat, Age, Farm) %>%
+  summarise(value = mean(value)) %>%
+  ungroup()
+
+DorrisSppWeek_df2 <- sppweek_df %>%
+  filter(Age == "Old") %>%
+  filter(Habitat == "Mixed" | Habitat == "Conifer" | Habitat == "Conifer" | Habitat == "Maple" | Habitat == "Oak") %>%
+  filter(Week == "4" |Week =="5" | Week == "8" | Week == "9" | Week =="10") %>%
+  group_by(Week, Habitat, Farm) %>%
+  summarise(meanvalue = mean(value)) %>%
+  ungroup()
+
+DorrisSppWeek_df2$Habitat[DorrisSppWeek_df2$Habitat == "Mixed"  ] <- "Mixed_Riparain"
+DorrisSppWeek_df2$Habitat[DorrisSppWeek_df2$Habitat == "Conifer"  ] <- "Douglas_fir"
+DorrisSppWeek_df2$Habitat[DorrisSppWeek_df2$Habitat == "Maple"  ] <- "Mixed_Hardwood"
+all.SppWeek.df2 <-rbind(sppweek_dfLaneMassee2, DorrisSppWeek_df2)
+
+##### Simpsons Across Farms######
+AllSimpsonWeek <- all.SppWeek.df2 %>%
+  group_by(Farm) %>%
+  summarise(Simpsons_evenness_index = simpson_e(meanvalue), Species_Richness = mean(meanvalue))
+AllSimpsonWeek
+
+
+##### IndicatorsAcrossFarms  Plot#####
+IndicatorsAcrossFarms1 <- pivot_wider(IndicatorsAcrossFarms, names_from = "Farm", values_from = "p.value") %>%
+  mutate_if(is.numeric, ~replace(., is.na(.), 1))
+IAFcom = IndicatorsAcrossFarms1[,2:ncol(IndicatorsAcrossFarms1)]
+IAFm_com = as.matrix(IAFcom)
+
+spNames <- c(unique(IndicatorsAcrossFarms1$Species))
+
+farmNames <- c( "Low", "Medium", "High")
+nSp <- length(spNames)
+nFarms <- length(farmNames)
+
+yloc <- seq(10,90, len=nSp)
+xloc <- seq(55,85, len=nFarms)
+
+
+#black <0.01 grey<0.05
+dat <- matrix(IAFm_com, ncol=nFarms)
+png('dotfig.png', width = 1200, height = 1440, units = "px")
+plot(1:100, 1:100, type='n', xaxt="n", yaxt="n", ylab="", xlab='', bty = "n")
+text(x=1, y=yloc, labels=spNames, font=3, adj=0, cex=2)
+text(x=xloc, y=100, labels=farmNames, cex=2)
+title(ylab = "", xlab = "", cex.lab=2.5, line = 1, font = 2 )
+for (f in 1:nFarms){
+  for (s in 1:nSp){
+    p <- dat[s,f]
+    if (p<0.01) {col <- "black"}
+    else if (p<0.05) {col <- "grey"}
+    else {col <- "white"}
+    points(rev(xloc)[f], yloc[s], pch=19, col=col, cex=3.5)
+  }
+}
+
+dev.off()
+
+##### Birds Abundnace Across-Farms #####
+FarmsBirds <- Bird_DATA%>%
+  drop_na(Day) %>%
+  drop_na(Band) %>%
+  filter(Farm == "Dorris" & Point != "6" & Point != "7" & Point != "1"& Point != "2"& Point != "3"& Point != "12" & Point != "13" & Point != "14"
+         | Farm == "Howell"| Farm == "Wheatland") %>%
+  filter(Week == "4" | Week == "5" | Week == "8" | Week == "9" | Week == "10")%>%
+  group_by(Species, Farm) %>%
+  summarise(Density = mean(Count)) %>%
+  ungroup() %>%
+  filter(Species == "BLCACH" | Species == "AMEGOL" | Species == "MOUDOV" | Species == "HOUFIN" | Species == "AMEROB" |
+           Species == "BROCRE" | Species == "BEWWRE" | Species == "NORFLI" | 
+           Species == "DOWWOO" | Species == "EURSTA" |Species == "STEJAY" |Species == "SONSPA" | 
+           Species == "SPOTOW" |Species == "ACOWOO") 
+
+
+#Fix Typos
+FarmsBirds$Species[FarmsBirds$Species == "FOXSPA" ] <- "SONSPA"
+FarmsBirds$Species[FarmsBirds$Species == "RETAHA" ] <- "RETAHW"
+FarmsBirds$Species[FarmsBirds$Species == "RUCUKI" ] <- "RUCRKI"
+
+#Add Diet Guilds
+FarmsBirds$Guild <- NA
+FarmsBirds$Guild[FarmsBirds$Species == "MALLAR" | FarmsBirds$Species == "CANGOO" | FarmsBirds$Species == "WILTUR" | FarmsBirds$Species == "EUCODO" |
+                   FarmsBirds$Species == "CACGOO" | FarmsBirds$Species == "PURFIN" | FarmsBirds$Species == "LAZBUN" |FarmsBirds$Species == "MOUDOV" |
+                   FarmsBirds$Species == "CALQUA" | FarmsBirds$Species == "DAEYJU" | FarmsBirds$Species == "LESGOL" | FarmsBirds$Species == "EVEGRO" |
+                   FarmsBirds$Species == "AMEGOL" ] <- "Granivore"
+
+FarmsBirds$Guild[FarmsBirds$Species == "NORFLI" | FarmsBirds$Species == "ANNHUM" | FarmsBirds$Species == "WILWAR" | FarmsBirds$Species == "BROCRE" | 
+                   FarmsBirds$Species == "WHENTI" | FarmsBirds$Species == "WEWOPE" | FarmsBirds$Species == "DOWWOO" | FarmsBirds$Species == "HAIWOO" | 
+                   FarmsBirds$Species == "PLIWOO" | FarmsBirds$Species == "COMYEL" | FarmsBirds$Species == "HOUFIN" | FarmsBirds$Species == "VARTHR" | 
+                   FarmsBirds$Species == "SONSPA" | FarmsBirds$Species == "BLWHWA" | FarmsBirds$Species == "ORCRWA" | FarmsBirds$Species == "HOUSPA" | 
+                   FarmsBirds$Species == "BLHEGR" | FarmsBirds$Species == "SPOTOW" | FarmsBirds$Species == "WESTAN" | FarmsBirds$Species == "BLCACH" | 
+                   FarmsBirds$Species == "BLGRGN" | FarmsBirds$Species == "BUSHTI" | FarmsBirds$Species == "GOCRKI" | FarmsBirds$Species == "RUCRKI" | 
+                   FarmsBirds$Species == "RUFHUM" | FarmsBirds$Species == "YERUWA" | FarmsBirds$Species == "YELWAR" | FarmsBirds$Species == "BTGYWA" | 
+                   FarmsBirds$Species == "WASBLU" | FarmsBirds$Species == "WHBRNU" | FarmsBirds$Species == "REBRNU" | FarmsBirds$Species == "REBRSA" | 
+                   FarmsBirds$Species == "CHISPA" | FarmsBirds$Species == "WASMEA" | FarmsBirds$Species == "EURSTA" | FarmsBirds$Species == "TRESWA" | 
+                   FarmsBirds$Species == "VIGRSW" | FarmsBirds$Species == "BEWWRE" | FarmsBirds$Species == "PACWRE" | FarmsBirds$Species == "HOUWRE" | 
+                   FarmsBirds$Species == "AMEROB" | FarmsBirds$Species == "HUTVIR" | FarmsBirds$Species == "WARVIR" | FarmsBirds$Species == "GOCRSP" | 
+                   FarmsBirds$Species == "WHCRSP" | FarmsBirds$Species == "BARSWA" | FarmsBirds$Species == "SWATHU" | FarmsBirds$Species == "TOWSOL" | 
+                   FarmsBirds$Species == "WESMEA" | FarmsBirds$Species == "YERWAR" | FarmsBirds$Species == "WESBLU" | FarmsBirds$Species == "PILWOO" | 
+                   FarmsBirds$Species == "WRENTI"] <- "Insectivore"
+
+FarmsBirds$Guild[FarmsBirds$Species == "REWIBL" | FarmsBirds$Species == "WESCJA" | FarmsBirds$Species == "AMECRO" | FarmsBirds$Species == "COMRAV" | 
+                   FarmsBirds$Species == "STEJAY" | FarmsBirds$Species == "ACOWOO"] <- "Omnivore"
+
+FarmsBirds$Guild[FarmsBirds$Species == "CEDWAX" ] <- "Frugivore"
+
+FarmsBirds$Guild[FarmsBirds$Species == "COOHAW" | FarmsBirds$Species == "SHSHHW" | FarmsBirds$Species == "GRHOOW" | FarmsBirds$Species == "RETAHW" | 
+                   FarmsBirds$Species == "TURVUL" | FarmsBirds$Species == "AMEKES" | FarmsBirds$Species == "BALEAG" | FarmsBirds$Species == "OSPREY" ] <- "Raptor"
+
+FarmsBirds$Guild[FarmsBirds$Species == "GRBLHE" | FarmsBirds$Species == "DOCRCO"] <- "Piscivorous"
+FarmsBirds$Farm <- factor(FarmsBirds$Farm, levels=c("Wheatland", "Howell", "Dorris"))
+FarmsSpecies_df <- merge(FarmsBirds, Species, by = 'Species')
+
+FarmsSpecies_df <- FarmsSpecies_df %>%
+  filter(Behavior == "Ground Forager" | Behavior == "Foliage Gleaner"| Behavior == "Bark Forager"| Behavior == "Aerial Forager")
+
+###Figure 2###
+AbundnaceAcrossPlot <- ggplot(FarmsSpecies_df, aes(x=Species, y=Density/20, fill=Behavior)) +
+  geom_col()+
+  facet_wrap(~Farm, ncol = 1) +
+  theme_bw()+
+  scale_fill_manual(values = c("black", "grey50", "lightgrey"))+
+  theme(strip.text = element_text( size = 14), strip.background = element_blank(),
+        axis.text.x = element_text(angle = 65, vjust=.5), ) +
+  labs(y = "birds/ha")
+
+
+
+##### Figure 3 #####
+DorrisBehaviorWeek <- Bird_DATA%>%
+  drop_na(Day) %>%
+  drop_na(Band) %>%
+  filter(Farm == "Dorris" & Point != "6" & Point != "7" & Point != "1"& Point != "2"& Point != "3"& Point != "12" & Point != "13" & Point != "14") %>%
+  group_by(Species, Point, Week) %>%
+  summarise(Density = mean(Count)) %>%
+  ungroup()
+
+Species_df <- merge(DorrisBehaviorWeek, Species, by = 'Species')
+
+Species_df$Age <- NA
+Species_df$Habitat <- NA
+
+Species_df$Habitat[Species_df$Point == 10 | Species_df$Point == 11 ] <- "Oak"
+Species_df$Habitat[Species_df$Point == 6 |Species_df$Point == 8 | Species_df$Point == 9  ] <- "Mixed"
+Species_df$Habitat[Species_df$Point == 4 | Species_df$Point == 5 ] <- "Urban_New"
+Species_df$Habitat[Species_df$Point == 7 ] <- "Conifer"
+Species_df$Habitat[Species_df$Point == 1 |Species_df$Point == 2 | Species_df$Point == 3  ] <- "Urban"
+Species_df$Habitat[Species_df$Point == 12 |Species_df$Point == 13 | Species_df$Point == 14  ] <- "Prairie_Oak"
+Species_df$Age[Species_df$Point == 1 | Species_df$Point == 2 | Species_df$Point == 3 | Species_df$Point == 12
+               | Species_df$Point == 13 | Species_df$Point == 14] <- NA
+Species_df$Age[Species_df$Point == 10 | Species_df$Point == 9 | Species_df$Point == 4 ] <- "Young"
+Species_df$Age[Species_df$Point == 5 | Species_df$Point == 8 | Species_df$Point == 11 ] <- "Old"
+
+
+Species_df$ID <- paste(Species_df$Age,Species_df$Habitat)
+
+InsectivoreDF <- Species_df %>%
+  filter(DietGulid1  == "Insectivore") %>%
+  filter(Behavior == "Ground Forager" | Behavior == "Foliage Gleaner"| Behavior == "Bark Forager"| Behavior == "Aerial Forager") %>%
+  mutate_if(is.numeric, ~replace(., is.na(.), 0)) %>%
+  group_by(Behavior, Age, Habitat) %>%
+  summarize(MeanDensity= mean(Density), SEdensity= calcSE(Density), Total= sum(Density)) %>%
+  mutate_if(is.numeric, ~replace(., is.na(.), 0)) %>%
+  ungroup()
+
+###Figure 3a###
+plot_sppWeekHabitit <- ggplot(InsectivoreDF, aes(x = Habitat, y = MeanDensity/20, fill = Age)) +
+  geom_col() +
+  scale_fill_manual(values = c("darkgrey", "lightgrey"))+
+  #geom_errorbar(aes(ymin= MeanDensity - SEdensity , ymax = MeanDensity + SEdensity), linewidth = 1.5) +
+  facet_wrap(~Behavior) +
+  theme_bw()+
+  #scale_x_discrete(name ="", 
+  # limits=c("1","2","3","4","5","6","7","8","9","10"),
+  # labels=c("3/7", "3/24", "4/23", "5/21", "6/10", "6/25", "7/16", "7/30", "8/13", "9/3")) +
+  theme(strip.text = element_text( size = 14), strip.background = element_blank(),
+        axis.text.x = element_text( vjust = 0.5, size = 12) ) +
+  labs(y = "birds/ha") 
+
+###Figure 3b###
+
+DorrisBirds <- Bird_DATA%>%
+  drop_na(Day) %>%
+  drop_na(Band) %>%
+  filter(Farm == "Dorris") %>%
+  group_by(Species, Point, Week) %>%
+  summarise(Density = mean(Count)) %>%
+  ungroup()
+
+#Add variables
+DorrisBirds$Habitat <- NA
+DorrisBirds$Age <- NA
+
+DorrisBirds$Habitat[DorrisBirds$Point == 10 | DorrisBirds$Point == 11 ] <- "Oak"
+DorrisBirds$Habitat[DorrisBirds$Point == 6  ] <- "Maple"
+DorrisBirds$Habitat[DorrisBirds$Point == 8 | DorrisBirds$Point == 9  ] <- "Mixed"
+DorrisBirds$Habitat[DorrisBirds$Point == 4 | DorrisBirds$Point == 5 ] <- "Urban_New"
+DorrisBirds$Habitat[DorrisBirds$Point == 7 ] <- "Conifer"
+DorrisBirds$Habitat[DorrisBirds$Point == 1 |DorrisBirds$Point == 2 | DorrisBirds$Point == 3  ] <- "Urban"
+DorrisBirds$Habitat[DorrisBirds$Point == 12 |DorrisBirds$Point == 13 | DorrisBirds$Point == 14  ] <- "Prairie_Oak"
+DorrisBirds$Age[DorrisBirds$Point == 3 |DorrisBirds$Point == 10 | DorrisBirds$Point == 9 | DorrisBirds$Point == 4 | DorrisBirds$Point == 12 | DorrisBirds$Point == 13] <- "Young"
+DorrisBirds$Age[DorrisBirds$Point == 1 | DorrisBirds$Point == 2 |DorrisBirds$Point == 5 | DorrisBirds$Point == 6 | DorrisBirds$Point == 7 |DorrisBirds$Point == 8 | DorrisBirds$Point == 11 | DorrisBirds$Point == 14 ] <- "Old"
+
+#Fix Typos
+DorrisBirds$Species[DorrisBirds$Species == "FOXSPA" ] <- "SONSPA"
+DorrisBirds$Species[DorrisBirds$Species == "RETAHA" ] <- "RETAHW"
+DorrisBirds$Species[DorrisBirds$Species == "RUCUKI" ] <- "RUCRKI"
+
+#Add Diet Guilds
+DorrisBirds$Guild <- NA
+DorrisBirds$Guild[DorrisBirds$Species == "MALLAR" | DorrisBirds$Species == "CANGOO" | DorrisBirds$Species == "WILTUR" | DorrisBirds$Species == "EUCODO" |
+                    DorrisBirds$Species == "CACGOO" | DorrisBirds$Species == "PURFIN" | DorrisBirds$Species == "LAZBUN" |DorrisBirds$Species == "MOUDOV" |
+                    DorrisBirds$Species == "CALQUA" | DorrisBirds$Species == "DAEYJU" | DorrisBirds$Species == "LESGOL" | DorrisBirds$Species == "EVEGRO" |
+                    DorrisBirds$Species == "AMEGOL" ] <- "Granivore"
+
+DorrisBirds$Guild[DorrisBirds$Species == "NORFLI" | DorrisBirds$Species == "ANNHUM" | DorrisBirds$Species == "WILWAR" | DorrisBirds$Species == "BROCRE" | 
+                    DorrisBirds$Species == "WHENTI" | DorrisBirds$Species == "WEWOPE" | DorrisBirds$Species == "DOWWOO" | DorrisBirds$Species == "HAIWOO" | 
+                    DorrisBirds$Species == "PLIWOO" | DorrisBirds$Species == "COMYEL" | DorrisBirds$Species == "HOUFIN" | DorrisBirds$Species == "VARTHR" | 
+                    DorrisBirds$Species == "SONSPA" | DorrisBirds$Species == "BLWHWA" | DorrisBirds$Species == "ORCRWA" | DorrisBirds$Species == "HOUSPA" | 
+                    DorrisBirds$Species == "BLHEGR" | DorrisBirds$Species == "SPOTOW" | DorrisBirds$Species == "WESTAN" | DorrisBirds$Species == "BLCACH" | 
+                    DorrisBirds$Species == "BLGRGN" | DorrisBirds$Species == "BUSHTI" | DorrisBirds$Species == "GOCRKI" | DorrisBirds$Species == "RUCRKI" | 
+                    DorrisBirds$Species == "RUFHUM" | DorrisBirds$Species == "YERUWA" | DorrisBirds$Species == "YELWAR" | DorrisBirds$Species == "BTGYWA" | 
+                    DorrisBirds$Species == "WASBLU" | DorrisBirds$Species == "WHBRNU" | DorrisBirds$Species == "REBRNU" | DorrisBirds$Species == "REBRSA" | 
+                    DorrisBirds$Species == "CHISPA" | DorrisBirds$Species == "WASMEA" | DorrisBirds$Species == "EURSTA" | DorrisBirds$Species == "TRESWA" | 
+                    DorrisBirds$Species == "VIGRSW" | DorrisBirds$Species == "BEWWRE" | DorrisBirds$Species == "PACWRE" | DorrisBirds$Species == "HOUWRE" | 
+                    DorrisBirds$Species == "AMEROB" | DorrisBirds$Species == "HUTVIR" | DorrisBirds$Species == "WARVIR" | DorrisBirds$Species == "GOCRSP" | 
+                    DorrisBirds$Species == "WHCRSP" | DorrisBirds$Species == "BARSWA" | DorrisBirds$Species == "SWATHU" | DorrisBirds$Species == "TOWSOL" | 
+                    DorrisBirds$Species == "WESMEA" | DorrisBirds$Species == "YERWAR" | DorrisBirds$Species == "WESBLU" | DorrisBirds$Species == "PILWOO" | 
+                    DorrisBirds$Species == "WRENTI"] <- "Insectivore"
+
+DorrisBirds$Guild[DorrisBirds$Species == "REWIBL" | DorrisBirds$Species == "WESCJA" | DorrisBirds$Species == "AMECRO" | DorrisBirds$Species == "COMRAV" | 
+                    DorrisBirds$Species == "STEJAY" | DorrisBirds$Species == "ACOWOO"] <- "Omnivore"
+
+DorrisBirds$Guild[DorrisBirds$Species == "CEDWAX" ] <- "Frugivore"
+
+DorrisBirds$Guild[DorrisBirds$Species == "COOHAW" | DorrisBirds$Species == "SHSHHW" | DorrisBirds$Species == "GRHOOW" | DorrisBirds$Species == "RETAHW" | 
+                    DorrisBirds$Species == "TURVUL" | DorrisBirds$Species == "AMEKES" | DorrisBirds$Species == "BALEAG" | DorrisBirds$Species == "OSPREY" ] <- "Raptor"
+
+DorrisBirds$Guild[DorrisBirds$Species == "GRBLHE" | DorrisBirds$Species == "DOCRCO"] <- "Piscivorous"
+
+ConservationDF <- DorrisBirds %>%
+  drop_na(Age) %>%
+  filter(Species == "ACOWOO" | Species == "CHISPA" | Species == "WHBRNU" | Species == "WESBLU") %>%
+  filter(Habitat == "Mixed" | Habitat == "Oak" | Habitat == "Urban_New" ) %>%
+  group_by(Habitat, Species, Age) %>%
+  summarise(SEdensity= calcSE(Density), Total= sum(Density), Density = mean(Density),) %>%
+  mutate_if(is.numeric, ~replace(., is.na(.), 0)) %>%
+  ungroup()
+
+ConservationDF$Species[ConservationDF$Species == "ACOWOO"] <- "Acorn Woodpecker"
+ConservationDF$Species[ConservationDF$Species == "CHISPA"] <- "Chipping Sparrow"
+ConservationDF$Species[ConservationDF$Species == "WHBRNU"] <- "White-breasted Nuthatch"
+ConservationDF$Species[ConservationDF$Species == "WESBLU"] <- "Western Bluebird"
+
+#Plot#
+ConservationPlot <- ggplot(ConservationDF, aes(x=Habitat, y=Density/20, fill=Age)) +
+  geom_col()+
+  facet_wrap(~Species) +
+  scale_fill_manual(values = c("darkgrey", "lightgrey"))+
+  #geom_errorbar(aes(ymin= Density - SEdensity , ymax = Density + SEdensity), linewidth = 1) +
+  theme_bw()+
+  theme(strip.text = element_text( size = 14), strip.background = element_blank(),
+        axis.text.x = element_text( vjust = 0.5, size = 12) ) +
+  labs(y = "birds/ha")
+
+Fig3 <- ggarrange(plot_sppWeekHabitit, ConservationPlot,
+                  nrow = 2, ncol = 1,
+                  common.legend = T, legend = "right")
+
+annotate_figure(Fig3, top = text_grob("",  
+                                      color = "Black", face = "bold", size = 22))
+
+##### Figure 4 - Bird Abundance Dorris #####
+AbundanceDF <- DorrisBirds %>%
+  drop_na(Age) %>%
+  filter(Species == "ANNHUM" | Species == "BROCRE" | Species == "BEWWRE" | Species == "NORFLI" | 
+           Species == "DOWWOO" | Species == "EURSTA" |Species == "STEJAY" |Species == "SONSPA" | 
+           Species == "SPOTOW" |Species == "ACOWOO") %>%
+  filter(Habitat == "Conifer" | Habitat == "Maple" | Habitat == "Mixed" | Habitat == "Oak" | Habitat == "Urban_New" ) %>%
+  group_by(Habitat, Species, Age) %>%
+  summarise(SEdensity= calcSE(Density), Total= sum(Density), Density = mean(Density),) %>%
+  mutate_if(is.numeric, ~replace(., is.na(.), 0)) %>%
+  ungroup()
+
+#Plot#
+AbundnacePlot <- ggplot(AbundanceDF, aes(x=Species, y=Density/20, fill=Age)) +
+  geom_col()+
+  facet_wrap(~Habitat) +
+  theme_bw()+
+  scale_fill_manual(values = c("darkgrey", "lightgrey"))+
+  theme(strip.text = element_text( size = 14), strip.background = element_blank(),
+        axis.text.x = element_text(angle = 90, vjust=.5), ) +
+  labs(y = "birds/ha")
+
+
