@@ -391,7 +391,8 @@ AbundanceDF <- DorrisBirds %>%
   ungroup()
 
 #Plot#
-AbundnacePlot <- ggplot(AbundanceDF, aes(x=Species, y=Density/20, fill=Age)) +
+AbundanceDF$Habitat <- factor(AbundanceDF$Habitat, levels=c("Urban_New", "Mixed", "Oak", "Maple", "Conifer"))
+AbundnacePlot <- ggplot(AbundanceDF, aes(x=Species, y=Density/25.133, fill=Age)) +
   geom_col()+
   facet_wrap(~Habitat) +
   theme_bw()+
@@ -468,7 +469,9 @@ FarmsSpecies_df <- FarmsSpecies_df %>%
 ```
 
 ```{r Figure4, echo=FALSE, include=FALSE}
-AbundnaceAcrossPlot <- ggplot(FarmsSpecies_df, aes(x=Species, y=Density/20, fill=Behavior)) +
+
+FarmsSpecies_df$Species <- factor(FarmsSpecies_df$Species, levels=c("ACOWOO", "BROCRE", "DOWWOO", "AMEGOL", "BEWWRE" ,"BLCACH", "AMEROB", "EURSTA", "HOUFIN", "MOUDOV", "NORFLI", "SONSPA", "SPOTOW", "STEJAY",  ))
+AbundnaceAcrossPlot <- ggplot(FarmsSpecies_df, aes(x=Species, y=Density/15.708, fill=Behavior)) +
   geom_col()+
   facet_wrap(~Farm, ncol = 1) +
   theme_bw()+
@@ -514,7 +517,7 @@ InsectivoreDF <- Species_df %>%
   ungroup()
 
 ###Figure 4a###
-plot_sppWeekHabitit <- ggplot(InsectivoreDF, aes(x = Habitat, y = MeanDensity/20, fill = Age)) +
+plot_sppWeekHabitit <- ggplot(InsectivoreDF, aes(x = Habitat, y = MeanDensity/25.133, fill = Age)) +
   geom_col() +
   scale_fill_manual(values = c("darkgrey", "lightgrey"))+
   #geom_errorbar(aes(ymin= MeanDensity - SEdensity , ymax = MeanDensity + SEdensity), linewidth = 1.5) +
@@ -544,7 +547,7 @@ ConservationDF$Species[ConservationDF$Species == "WHBRNU"] <- "White-breasted Nu
 ConservationDF$Species[ConservationDF$Species == "WESBLU"] <- "Western Bluebird"
 
 #Plot#
-ConservationPlot <- ggplot(ConservationDF, aes(x=Habitat, y=Density/20, fill=Age)) +
+ConservationPlot <- ggplot(ConservationDF, aes(x=Habitat, y=Density/25.133, fill=Age)) +
   geom_col()+
   facet_wrap(~Species) +
   scale_fill_manual(values = c("darkgrey", "lightgrey"))+
@@ -557,13 +560,15 @@ ConservationPlot <- ggplot(ConservationDF, aes(x=Habitat, y=Density/20, fill=Age
 ```
 
 ```{r Fig4Plot, echo=FALSE, include=TRUE}
-Fig4 <- ggarrange(plot_sppWeekHabitit, ConservationPlot,
-                  nrow = 2, ncol = 1,
-                  common.legend = T, legend = "right")
-
-annotate_figure(Fig4, top = text_grob("",  
-                                      color = "Black", face = "bold", size = 22))
+AbundnaceAcrossPlot
 ```
 
 
+```{r Fig5Plot, echo=FALSE, include=TRUE}
+Fig5 <- ggarrange(plot_sppWeekHabitit, ConservationPlot,
+                  nrow = 2, ncol = 1,
+                  common.legend = T, legend = "right")
 
+annotate_figure(Fig5, top = text_grob("",  
+                                      color = "Black", face = "bold", size = 22))
+```
